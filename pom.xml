@@ -105,11 +105,11 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-maven-plugin</artifactId>
-                <version>11.0.20</version> <!-- 使用最新版本 -->
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.eclipse.jetty</groupId>-->
+<!--                <artifactId>jetty-maven-plugin</artifactId>-->
+<!--                <version>11.0.20</version> &lt;!&ndash; 使用最新版本 &ndash;&gt;-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
