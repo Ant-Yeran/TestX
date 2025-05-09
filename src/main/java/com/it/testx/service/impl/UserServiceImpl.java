@@ -1,0 +1,72 @@
+package com.it.testx.service.impl;
+
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.DigestUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.it.testx.exception.ErrorCode;
+import com.it.testx.exception.ThrowUtils;
+import com.it.testx.model.entity.User;
+import com.it.testx.model.enums.UserRoleEnum;
+import com.it.testx.service.UserService;
+import com.it.testx.mapper.UserMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+import org.springframework.util.StringUtils;
+
+/**
+ * User Service Impl
+ */
+@Service
+public class UserServiceImpl extends ServiceImpl<UserMapper, User>
+        implements UserService {
+
+    /**
+     * User register
+     *
+     * @param account       User account
+     * @param password      User password
+     * @param checkPassword Check password
+     * @return User ID
+     */
+    @Override
+    public long register(String account, String password, String checkPassword) {
+        // 1. 校验参数
+        ThrowUtils.throwIf(StrUtil.hasBlank(account), ErrorCode.PARAMS_ERROR, "用户账号不能为空");
+        ThrowUtils.throwIf(StrUtil.hasBlank(password), ErrorCode.PARAMS_ERROR, "用户密码不能为空");
+        ThrowUtils.throwIf(!password.equals(checkPassword), ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+
+        // 2. 用户合法性校验
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_account", account);
+        long count = this.baseMapper.selectCount(queryWrapper);
+        ThrowUtils.throwIf(count > 0, ErrorCode.PARAMS_ERROR, "用户账号重复");
+
+        // 3. 密码加密
+        String encryptPassword = getEncryptPassword(password);
+
+        // 4. 插入数据
+        User user = new User();
+        user.setUserAccount(account);
+        user.setUserPassword(encryptPassword);
+        user.setUserName("");
+        user.setUserRole(UserRoleEnum.USER.getValue());
+        boolean saveResult = this.save(user);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+        return user.getId();
+    }
+
+    /**
+     * @param password User password
+     * @return Encrypt password
+     */
+    @Override
+    public String getEncryptPassword(String password) {
+        final String SALT = "test-x";
+        return DigestUtils.md5DigestAsHex((SALT + password).getBytes()).toUpperCase();
+    }
+}
+
+
+
+
