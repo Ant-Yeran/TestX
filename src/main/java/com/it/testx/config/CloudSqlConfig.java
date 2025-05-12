@@ -2,15 +2,29 @@ package com.it.testx.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
-//@Configuration
+@Configuration
 public class CloudSqlConfig {
+
+    @Bean
+    @Primary  // 标记为主数据源，覆盖默认的MySQL数据源
+    public DataSource dataSource() {
+        HikariConfig config = new HikariConfig();
+
+        config.setJdbcUrl(String.format("jdbc:mysql:///%s", System.getenv("MYSQL_DB")));
+        config.setUsername(System.getenv("MYSQL_USER")); // e.g. "root", "mysql"
+        config.setPassword(System.getenv("MYSQL_PASS")); // e.g. "my-password"
+        config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.mysql.SocketFactory");
+        config.addDataSourceProperty("cloudSqlInstance", System.getenv("MYSQL_CONNECTION_NAME"));
+
+        return new HikariDataSource(config);
+    }
+}
 
 //    @Value("${spring.cloud.gcp.sql.instance-connection-name}")
 //    private String instanceConnectionName;
@@ -50,4 +64,4 @@ public class CloudSqlConfig {
 //
 //        return new HikariDataSource(config);
 //    }
-}
+//}
