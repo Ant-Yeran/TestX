@@ -13,6 +13,7 @@ public interface UserService extends IService<User> {
 
     /**
      * User register
+     *
      * @param account   User account
      * @param password  User password
      * @param checkPassword Check password
@@ -20,6 +21,30 @@ public interface UserService extends IService<User> {
      */
     long register(String account, String password, String checkPassword);
 
+    /**
+     * User login
+     *
+     * @param account  User account
+     * @param password User password
+     * @return  脱敏后的用户信息
+     */
+    LoginUserVO login(String account, String password);
+
+    /**
+     * Get current login user
+     *
+     * @param request   request
+     * @return  Current login user
+     */
+    User getLoginUser(HttpServletRequest request);
+
+    /**
+     * User logout
+     *
+     * @param request   request
+     * @return  success
+     */
+    boolean logout(HttpServletRequest request);
 
     /**
      *
@@ -37,6 +62,14 @@ public interface UserService extends IService<User> {
      * @return 脱敏后的用户信息
      */
     LoginUserVO userLogin(String account, String password, HttpServletRequest request);
+
+    /**
+     * 获取脱敏后的用户信息
+     * @param user  用户信息
+     * @param token token
+     * @return  脱敏后的用户信息
+     */
+    LoginUserVO getLoginUserVO(User user, String token);
 
     /**
      * 获取脱敏后的用户信息

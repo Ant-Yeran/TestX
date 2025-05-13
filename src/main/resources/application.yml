@@ -6,7 +6,16 @@ server:
 spring:
   application:
     name: testx
-#  # 使用 GCP 提供的 Cloud SQL for MySQL 数据库
+
+  # Redis 配置
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
+
+
+  #  # 使用 GCP 提供的 Cloud SQL for MySQL 数据库
 #  datasource:
 ##    name: ${DB_NAME:your_database_name}
 ##    username: ${DB_USER:your_db_user}

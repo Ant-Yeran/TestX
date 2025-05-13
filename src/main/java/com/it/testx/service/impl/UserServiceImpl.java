@@ -1,26 +1,29 @@
 package com.it.testx.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.it.testx.exception.BusinessException;
 import com.it.testx.exception.ErrorCode;
 import com.it.testx.exception.ThrowUtils;
+import com.it.testx.mapper.UserMapper;
 import com.it.testx.model.entity.User;
 import com.it.testx.model.enums.UserRoleEnum;
 import com.it.testx.model.vo.user.LoginUserVO;
 import com.it.testx.service.UserService;
-import com.it.testx.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
-import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import static com.it.testx.constant.UserConstant.USER_LOGIN_STATE;
+import static com.it.testx.constant.UserConstant.LOGIN_TOKEN_EXPIRE;
+import static com.it.testx.constant.UserConstant.LOGIN_TOKEN_PREFIX;
 
 /**
  * User Service Impl
@@ -29,6 +32,9 @@ import static com.it.testx.constant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * User register
@@ -66,24 +72,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     /**
-     * @param password User password
-     * @return Encrypt password
-     */
-    @Override
-    public String getEncryptPassword(String password) {
-        final String SALT = "test-x";
-        return DigestUtils.md5DigestAsHex((SALT + password).getBytes()).toUpperCase();
-    }
-
-    /**
      * User login
+     *
      * @param account  User account
      * @param password User password
-     * @param request   http request
-     * @return  脱敏后的用户信息
+     * @return 脱敏后的用户信息
      */
     @Override
-    public LoginUserVO userLogin(String account, String password, HttpServletRequest request) {
+    public LoginUserVO login(String account, String password) {
         // 1. 参数校验
         ThrowUtils.throwIf(StrUtil.hasBlank(account, password), ErrorCode.PARAMS_ERROR, "账号或密码为空");
 
@@ -97,18 +93,119 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = this.baseMapper.selectOne(queryWrapper);
         // 用户不存在
         if (user == null) {
-            log.info("user login failed, userAccount cannot match userPassword");
+            log.info("User login failed, account cannot match password");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        // 4. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        return this.getLoginUserVO(user);
+
+        // 4. 生成登录 Token 并存储到 Redis（使用Redisson）
+        String token = generateAndStoreToken(user);
+
+        // 6. 返回脱敏用户信息（携带Token）
+        return getLoginUserVO(user, token);
+    }
+
+    /**
+     * Get current login user
+     *
+     * @param request request
+     * @return Current login user
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        // 1. 从请求头获取 Token
+        String token = request.getHeader("Authorization");
+        ThrowUtils.throwIf(StrUtil.isBlank(token), ErrorCode.NOT_LOGIN_ERROR);
+
+        // 2. 从 Redis 获取用户信息
+        String redisKey = LOGIN_TOKEN_PREFIX + token;
+        LoginUserVO loginUserVO = (LoginUserVO) redisTemplate.opsForValue().get(redisKey);
+        ThrowUtils.throwIf(loginUserVO == null, ErrorCode.NOT_LOGIN_ERROR);
+
+        // 3. 自动续期
+        redisTemplate.expire(redisKey, LOGIN_TOKEN_EXPIRE, TimeUnit.MINUTES);
+
+        // 4. 返回用户信息（可根据需要决定是否查询数据库获取最新数据）
+        return this.getById(loginUserVO.getId());
+    }
+
+    /**
+     * User logout
+     *
+     * @param request request
+     * @return success
+     */
+    @Override
+    public boolean logout(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        ThrowUtils.throwIf(StrUtil.isBlank(token), ErrorCode.NOT_LOGIN_ERROR);
+        if (StrUtil.isNotBlank(token)) {
+            // 删除 Redis 中的 Token
+            redisTemplate.delete(LOGIN_TOKEN_PREFIX + token);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param password User password
+     * @return Encrypt password
+     */
+    @Override
+    public String getEncryptPassword(String password) {
+        final String SALT = "test-x";
+        return DigestUtils.md5DigestAsHex((SALT + password).getBytes()).toUpperCase();
+    }
+
+    @Override
+    public LoginUserVO userLogin(String account, String password, HttpServletRequest request) {
+        return null;
+    }
+
+    /**
+     * 生成并存储 Token
+     *
+     * @param user User
+     * @return token
+     */
+    private String generateAndStoreToken(User user) {
+        // 生成 UUID 作为 Token
+        String token = UUID.randomUUID().toString().replace("-", "");
+
+        // 构建登录用户 VO
+        LoginUserVO loginUserVO = new LoginUserVO();
+        BeanUtils.copyProperties(user, loginUserVO);
+
+        // 存储到 Redis 并设置过期时间
+        String redisKey = LOGIN_TOKEN_PREFIX + token;
+        redisTemplate.opsForValue().set(
+                redisKey,
+                loginUserVO,
+                LOGIN_TOKEN_EXPIRE,
+                TimeUnit.MINUTES
+        );
+
+        return token;
+    }
+
+    /**
+     * 获取脱敏后的用户信息（携带 token）
+     *
+     * @param user  用户信息
+     * @param token 用户 token
+     * @return 脱敏后的用户信息
+     */
+    @Override
+    public LoginUserVO getLoginUserVO(User user, String token) {
+        LoginUserVO vo = getLoginUserVO(user);
+        vo.setToken(token);  // 将 Token 返回给前端
+        return vo;
     }
 
     /**
      * 获取脱敏后的用户信息
-     * @param user  用户信息
-     * @return  脱敏后的用户信息
+     *
+     * @param user 用户信息
+     * @return 脱敏后的用户信息
      */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
@@ -118,6 +215,61 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         BeanUtils.copyProperties(user, loginUserVO);
         return loginUserVO;
     }
+
+//    /**
+//     * User login
+//     * @param account  User account
+//     * @param password User password
+//     * @param request   http request
+//     * @return  脱敏后的用户信息
+//     */
+//    @Override
+//    public LoginUserVO userLogin(String account, String password, HttpServletRequest request) {
+//        // 1. 参数校验
+//        ThrowUtils.throwIf(StrUtil.hasBlank(account, password), ErrorCode.PARAMS_ERROR, "账号或密码为空");
+//
+//        // 2. 密码加密
+//        String encryptPassword = getEncryptPassword(password);
+//
+//        // 3. 查询用户是否存在
+//        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+//        queryWrapper.eq("user_account", account);
+//        queryWrapper.eq("user_password", encryptPassword);
+//        User user = this.baseMapper.selectOne(queryWrapper);
+//        // 用户不存在
+//        if (user == null) {
+//            log.info("user login failed, userAccount cannot match userPassword");
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
+//        }
+//        // 4. 记录用户的登录态
+//        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+//        return this.getLoginUserVO(user);
+//    }
+
+
+//    /**
+//     * 获取当前登录用户
+//     * @param request   请求
+//     * @return  当前登录用户
+//     */
+//    @Override
+//    public User getLoginUser(HttpServletRequest request) {
+//        // 1. 判断是否已登录
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        User currentUser = (User) userObj;
+//        if (currentUser == null || currentUser.getId() == null) {
+//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+//        }
+//
+//        // 2. 从数据库查询（追求性能的话可以注释，直接返回上述结果）
+//        long userId = currentUser.getId();
+//        currentUser = this.getById(userId);
+//        if (currentUser == null) {
+//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+//        }
+//        return currentUser;
+//    }
+
 }
 
 

@@ -56,6 +56,11 @@ public class LoginUserVO implements Serializable {
      */
     private Date updateTime;
 
+    /**
+     * User login token
+     */
+    private String token;
+
     @Serial
     private static final long serialVersionUID = -4773256413656418500L;
 }
