@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS user
     is_delete     TINYINT      DEFAULT 0                 NOT NULL COMMENT 'Soft delete flag (0=active, 1=deleted)',
 
     -- Constraints
-    UNIQUE KEY uk_user_account (user_account, is_delete),
+    -- 核心约束：仅对 is_delete=0 的账号强制唯一
+    UNIQUE KEY uk_user_account_active (user_account, (IF(is_delete = 0, 1, NULL))),
     INDEX idx_user_name (user_name)
 )
     ENGINE = InnoDB

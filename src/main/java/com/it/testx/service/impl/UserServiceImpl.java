@@ -1,5 +1,7 @@
 package com.it.testx.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -7,8 +9,10 @@ import com.it.testx.exception.BusinessException;
 import com.it.testx.exception.ErrorCode;
 import com.it.testx.exception.ThrowUtils;
 import com.it.testx.mapper.UserMapper;
+import com.it.testx.model.dto.admin.UserQueryRequest;
 import com.it.testx.model.entity.User;
 import com.it.testx.model.enums.UserRoleEnum;
+import com.it.testx.model.vo.admin.UserVO;
 import com.it.testx.model.vo.user.LoginUserVO;
 import com.it.testx.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +23,11 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.it.testx.constant.UserConstant.LOGIN_TOKEN_EXPIRE;
 import static com.it.testx.constant.UserConstant.LOGIN_TOKEN_PREFIX;
@@ -64,7 +71,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = new User();
         user.setUserAccount(account);
         user.setUserPassword(encryptPassword);
-        user.setUserName("");
+        user.setUserName("ant");
+        user.setUserProfile("这个家伙很懒，啥也没填～");
         user.setUserRole(UserRoleEnum.USER.getValue());
         boolean saveResult = this.save(user);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -107,13 +115,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * Get current login user
      *
-     * @param request request
+     * @param token token
      * @return Current login user
      */
     @Override
-    public User getLoginUser(HttpServletRequest request) {
-        // 1. 从请求头获取 Token
-        String token = request.getHeader("Authorization");
+    public User getLoginUser(String token) {
+        // 1. 检验参数
         ThrowUtils.throwIf(StrUtil.isBlank(token), ErrorCode.NOT_LOGIN_ERROR);
 
         // 2. 从 Redis 获取用户信息
@@ -131,12 +138,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * User logout
      *
-     * @param request request
+     * @param token token
      * @return success
      */
     @Override
-    public boolean logout(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
+    public boolean logout(String token) {
         ThrowUtils.throwIf(StrUtil.isBlank(token), ErrorCode.NOT_LOGIN_ERROR);
         if (StrUtil.isNotBlank(token)) {
             // 删除 Redis 中的 Token
@@ -215,6 +221,63 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         BeanUtils.copyProperties(user, loginUserVO);
         return loginUserVO;
     }
+
+    /**
+     * 【管理员】获取脱敏后的用户信息
+     * @param user  用户信息
+     * @return  脱敏后的用户信息
+     */
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    /**
+     * 【管理员】获取脱敏后的用户信息列表
+     * @param userList  用户信息列表
+     * @return  脱敏后的用户信息列表
+     */
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    /**
+     * 【管理员】用户查询
+     * @param userQueryRequest  用户查询请求
+     * @return  用户
+     */
+    @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
+        queryWrapper.eq(StrUtil.isNotBlank(userRole), "user_role", userRole);
+        queryWrapper.like(StrUtil.isNotBlank(userAccount), "user_account", userAccount);
+        queryWrapper.like(StrUtil.isNotBlank(userName), "user_name", userName);
+        queryWrapper.like(StrUtil.isNotBlank(userProfile), "user_profile", userProfile);
+        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        return queryWrapper;
+    }
+
+
 
 //    /**
 //     * User login
