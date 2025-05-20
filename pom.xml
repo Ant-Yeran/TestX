@@ -99,6 +99,15 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Google Cloud Storage: https://cloud.google.com/storage/docs/reference/libraries?authuser=1 -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage-control</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -119,6 +128,14 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>libraries-bom</artifactId>
                 <version>26.43.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Google Cloud Storage: https://cloud.google.com/storage/docs/reference/libraries?authuser=1 -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.59.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

@@ -10,7 +10,7 @@ spring:
   # Redis 配置
   redis:
     database: 0
-    host: 127.0.0.1
+    host: 127.0.0.1 # 部署时需要修改为远程host
     port: 6379
     timeout: 5000
 
