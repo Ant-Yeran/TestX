@@ -4,7 +4,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.it.testx.config.GCSConfig;
+import com.it.testx.config.gcp.GCSConfig;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -21,7 +21,7 @@ public class GCSManager {
     private GCSConfig gcsConfig;
 
     @Resource
-    private Storage gscClient;
+    private Storage gcsClient;
 
     /**
      * 文件上传
@@ -34,7 +34,7 @@ public class GCSManager {
         try {
             BlobId blobId = BlobId.of(bucketName, objectName);
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
-            gscClient.create(blobInfo, Files.readAllBytes(Paths.get(sourceFilePath)));
+            gcsClient.create(blobInfo, Files.readAllBytes(Paths.get(sourceFilePath)));
             System.out.printf("Uploaded file %s to gs://%s/%s%n",
                     sourceFilePath, bucketName, objectName);
         } catch (Exception e) {
@@ -61,7 +61,7 @@ public class GCSManager {
      */
     public void downloadFile(String bucketName, String objectName, String destFilePath) {
         try {
-            Blob blob = gscClient.get(BlobId.of(bucketName, objectName));
+            Blob blob = gcsClient.get(BlobId.of(bucketName, objectName));
             if (blob == null) {
                 throw new RuntimeException("Object not found in bucket");
             }

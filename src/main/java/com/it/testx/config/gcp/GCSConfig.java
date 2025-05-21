@@ -1,4 +1,4 @@
-package com.it.testx.config;
+package com.it.testx.config.gcp;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;

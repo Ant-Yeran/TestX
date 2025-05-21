@@ -1,4 +1,4 @@
-package com.it.testx.config;
+package com.it.testx.config.gcp;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

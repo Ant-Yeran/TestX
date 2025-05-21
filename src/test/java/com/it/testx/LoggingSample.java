@@ -42,10 +42,7 @@ public class LoggingSample {
               .build();
 
       // Writes the log entry asynchronously with explicit destination
-      logging.write(
-          Collections.singleton(entry),
-          Logging.WriteOption.logName(logName)
-      );
+      logging.write(Collections.singleton(entry));
 
       // Flush before closing
       logging.flush();
