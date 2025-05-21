@@ -34,3 +34,7 @@ build/
 
 ### Google Cloud Platform ###
 service-account-key.json
+
+
+### Custom ###
+src/main/resources/application-local.yml

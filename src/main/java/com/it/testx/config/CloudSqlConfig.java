@@ -9,6 +9,10 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 
 // TODO 当需要访问远程 Cloud SQL 时开启
+
+/**
+ * Cloud SQL 客户端配置类
+ */
 //@Configuration
 public class CloudSqlConfig {
 
