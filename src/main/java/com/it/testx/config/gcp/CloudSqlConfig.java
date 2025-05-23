@@ -3,6 +3,7 @@ package com.it.testx.config.gcp;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
@@ -12,7 +13,7 @@ import javax.sql.DataSource;
 /**
  * Cloud SQL 客户端配置类
  */
-//@Configuration
+@Configuration
 public class CloudSqlConfig {
 
     @Bean
