@@ -1,0 +1,37 @@
+swagger: "2.0"
+info:
+  title: User API with JWT Auth
+  version: 1.0.0
+
+# 1. 定义JWT验证规则
+securityDefinitions:
+  firebase_auth:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/YOUR_PROJECT_ID"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "YOUR_PROJECT_ID"
+
+# 2. 应用验证规则
+paths:
+  /users/{userId}:
+    get:
+      security:
+        - firebase_auth: [ ]
+      x-google-backend:
+        address: http://your-vm-internal-ip:8080
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          type: string
+  /admin/users:
+    get:
+      security:
+        - firebase_auth: [ ]
+      x-google-backend:
+        address: http://your-backend:8080
+      x-google-required-claims: # 自定义声明要求
+        - key: "role"
+          values: [ "admin" ]

@@ -15,6 +15,7 @@ import com.it.testx.model.enums.UserRoleEnum;
 import com.it.testx.model.vo.admin.UserVO;
 import com.it.testx.model.vo.user.LoginUserVO;
 import com.it.testx.service.UserService;
+import com.it.testx.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -39,6 +40,9 @@ import static com.it.testx.constant.UserConstant.LOGIN_TOKEN_PREFIX;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    @Resource
+    private JwtUtils jwtUtils;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -105,11 +109,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
 
-        // 4. 生成登录 Token 并存储到 Redis（使用Redisson）
-        String token = generateAndStoreToken(user);
+        // 4. 生成登录 Token 并存储到 Redis
+        // String token = generateAndStoreToken(user);
+        // 生成 JWT
+        String token = jwtUtils.generateToken(String.valueOf(user.getId()));
 
-        // 6. 返回脱敏用户信息（携带Token）
-        return getLoginUserVO(user, token);
+        // 5. 存储到 Redis 并返回脱敏用户信息（携带Token）
+        // return getLoginUserVO(user, token);
+        return storeToken(user, token);
     }
 
     /**
@@ -122,6 +129,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public User getLoginUser(String token) {
         // 1. 检验参数
         ThrowUtils.throwIf(StrUtil.isBlank(token), ErrorCode.NOT_LOGIN_ERROR);
+        ThrowUtils.throwIf(!jwtUtils.validateToken(token), ErrorCode.NOT_LOGIN_ERROR);
 
         // 2. 从 Redis 获取用户信息
         String redisKey = LOGIN_TOKEN_PREFIX + token;
@@ -191,6 +199,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         );
 
         return token;
+    }
+
+    /**
+     * 存储 Token
+     *
+     * @param user User
+     * @return token
+     */
+    private LoginUserVO storeToken(User user, String token) {
+        // 构建登录用户 VO
+        LoginUserVO loginUserVO = new LoginUserVO();
+        BeanUtils.copyProperties(user, loginUserVO);
+
+        // 存储到 Redis 并设置过期时间
+        String redisKey = LOGIN_TOKEN_PREFIX + token;
+        redisTemplate.opsForValue().set(
+                redisKey,
+                loginUserVO,
+                LOGIN_TOKEN_EXPIRE,
+                TimeUnit.MINUTES
+        );
+        return getLoginUserVO(user, token);
     }
 
     /**

@@ -71,3 +71,7 @@ gcp:
     bucket: testx_bucket
 
 
+# Custom JWT
+jwt:
+  issuer: issuer of the token
+  audience: YOUR-CLIENT-ID
