@@ -3,7 +3,7 @@ info:
   version: '1.0'
   title: my-api
   contact: {}
-host: "34.53.36.192:8123"
+host: "my-gateway-5oqdr0kt.uc.gateway.dev"  # 网关自动分配的域名
 basePath: "/api"
 tags:
   - name: jwks-controller
@@ -12,22 +12,40 @@ tags:
     x-order: '2147483647'
   - name: user-controller
     x-order: '2147483647'
+x-google-backend:
+#  connection:
+#    vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
+#  address: http://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/
+  address: http://10.138.0.5:8123
+  path_translation: APPEND_PATH_TO_ADDRESS
+  protocol: http/1.1
+
+#x-google-backend:
+##  address: http://localhost:8123
+#  address: http://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123  # 虚拟机公网IP和端口
+
 
 # 1. 定义安全方案
 securityDefinitions:
-  your_custom_auth_id:
-    authorizationUrl: ""
-    flow: "implicit"
-    type: "oauth2"
-    # The value below should be unique
-    x-google-issuer: "issuer of the token"
-    x-google-jwks_uri: "https://us-west1-a-testx-459207:8123/api/auth/.well-known/jwks.json"
-    # Optional. Replace YOUR-CLIENT-ID with your client ID
-    x-google-audiences: "YOUR-CLIENT-ID"
+  api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"  # 或 "header"
+#securityDefinitions:
+#  your_custom_auth_id:
+#    authorizationUrl: ""
+#    flow: "implicit"
+#    type: "oauth2"
+#    # The value below should be unique
+#    x-google-issuer: "issuer of the token"
+#    x-google-jwks_uri: "http://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/auth/.well-known/jwks.json"
+#    # Optional. Replace YOUR-CLIENT-ID with your client ID
+#    x-google-audiences: "YOUR-CLIENT-ID"
 
 # 2. 全局安全要求（默认所有接口需要认证）
 security:
-  - jwt_auth: []
+  - api_key: []
+#  - jwt_auth: []
 
 paths:
   "/api/auth/.well-known/jwks.json":
@@ -39,9 +57,15 @@ paths:
       produces:
         - "*/*"
       # 特别声明此接口不需要认证
-      security: []  # 覆盖全局设置
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/auth/.well-known/jwks.json
+      security:
+        - api_key: []  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/auth/.well-known/jwks.json
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       responses:
         '200':
           description: OK
@@ -64,9 +88,15 @@ paths:
       produces:
         - "*/*"
       # 特别声明此接口不需要认证
-      security: [ ]  # 覆盖全局设置
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/health
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/health
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       responses:
         '200':
           description: OK
@@ -90,8 +120,15 @@ paths:
         - application/json
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/delete
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/delete
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - in: body
           name: deleteRequest
@@ -122,8 +159,13 @@ paths:
       operationId: getUserByIdUsingGET
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/get
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/get
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - name: id
           in: query
@@ -131,6 +173,8 @@ paths:
           required: false
           type: integer
           format: int64
+      security:
+        - api_key: [ ]  # 引用安全定义
       responses:
         '200':
           description: OK
@@ -152,8 +196,15 @@ paths:
       operationId: getLoginUserUsingGET
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/get/cur
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/get/cur
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - name: Authorization
           in: header
@@ -181,8 +232,15 @@ paths:
       operationId: getUserVOByIdUsingGET
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/get/vo
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/get/vo
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - name: Authorization
           in: header
@@ -218,8 +276,15 @@ paths:
         - application/json
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/list/page/vo
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/list/page/vo
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - in: body
           name: userQueryRequest
@@ -252,8 +317,15 @@ paths:
         - application/json
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/login
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/login
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - in: body
           name: userLoginRequest
@@ -275,7 +347,7 @@ paths:
         '404':
           description: Not Found
       # 特别声明此接口不需要认证
-      security: []  # 覆盖全局设置
+#      security: []  # 覆盖全局设置
       deprecated: false
       x-order: '2147483647'
   "/api/user/logout":
@@ -288,8 +360,15 @@ paths:
         - application/json
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/logout
+      security:
+        - api_key: [ ]  # 引用安全定义
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/logout
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - name: Authorization
           in: header
@@ -313,6 +392,8 @@ paths:
       x-order: '2147483647'
   "/api/user/register":
     post:
+      security:
+        - api_key: [ ]  # 引用安全定义
       tags:
         - user-controller
       summary: userRegister
@@ -321,8 +402,13 @@ paths:
         - application/json
       produces:
         - "*/*"
-      x-google-backend:
-        address: https://us-west1-a-testx-459207:8123/api/user/register
+#      x-google-backend:
+##        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123/api/user/register
+#        address: https://instance-20250509-072054.us-west1-a.c.testx-459207.internal:8123
+#        path_translation: APPEND_PATH_TO_ADDRESS
+#        protocol: http/1.1
+#        connection:
+#          vpc_network_name: projects/testx-459207/locations/us-central1/connectors/my-connector
       parameters:
         - in: body
           name: userRegisterRequest
@@ -344,7 +430,7 @@ paths:
         '404':
           description: Not Found
       # 特别声明此接口不需要认证
-      security: []  # 覆盖全局设置
+#      security: []  # 覆盖全局设置
       deprecated: false
       x-order: '2147483647'
 definitions:

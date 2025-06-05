@@ -118,6 +118,11 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-monitoring</artifactId>
         </dependency>
+        <!-- Google Cloud KMS: https://cloud.google.com/kms/docs/reference/libraries?hl=zh-cn#client-libraries-install-java -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-kms</artifactId>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
