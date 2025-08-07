@@ -72,7 +72,27 @@ gcp:
     bucket: testx_bucket
 
 
-# Custom JWT
+# JSON Web Token
 jwt:
   issuer: issuer of the token
   audience: YOUR-CLIENT-ID
+  token-expiration: 30m
+
+
+security:
+  # 白名单请求放行至 Controller，不经过任何过滤器
+  whitelist:
+    - "/api/**"
+    - "/member/**"
+    - "/portal/operator/register"
+    - "/portal/operator/login"
+    - "/portal/operator/public-key"
+    - "/health/*"
+
+  cors:
+    enabled: true
+    allow-credentials: true
+    allowed-origins: "*"
+    allowed-headers: "*"
+    allowed-methods: "*"
+    path-pattern: "/**"
