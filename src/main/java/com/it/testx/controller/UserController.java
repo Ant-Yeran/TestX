@@ -16,6 +16,7 @@ import com.it.testx.model.entity.User;
 import com.it.testx.model.vo.admin.UserVO;
 import com.it.testx.model.vo.user.LoginUserVO;
 import com.it.testx.service.UserService;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;

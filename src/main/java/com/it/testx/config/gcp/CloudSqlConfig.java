@@ -13,7 +13,7 @@ import javax.sql.DataSource;
 /**
  * Cloud SQL 客户端配置类
  */
-//@Configuration
+@Configuration
 public class CloudSqlConfig {
 
     @Bean
